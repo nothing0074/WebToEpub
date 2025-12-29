@@ -6,7 +6,7 @@ class LeafStudioParser extends Parser {
         super();
     }
 
-    async getChapterUrls(dom, chapterUrlsUI) {
+    async getChapterUrls(dom) {
         let menu = dom.querySelector(".novel_index");
         return util.hyperlinksToChapterList(menu).reverse();
     }
@@ -21,8 +21,7 @@ class LeafStudioParser extends Parser {
 
     // Remove unwanted elements from fetched content
     removeUnwantedElementsFromContentElement(element) {
-        ["#font-options-bar", ".confuse", ".post-rating-wrapper", "#donation-msg", ".novel_nav_item", ".text-center", ".navigation"]
-            .forEach(s => util.removeChildElementsMatchingSelector(element, s));
+        util.removeChildElementsMatchingSelector(element, "#font-options-bar, .confuse, .post-rating-wrapper, #donation-msg, .novel_nav_item, .text-center, .navigation");
         super.removeUnwantedElementsFromContentElement(element);
     }
 
