@@ -5,10 +5,12 @@
 //dead urls
 parserFactory.register("blossomtranslation.com", () => new FictioneerParser());
 parserFactory.register("igniforge.com", () => new FictioneerParser());
+parserFactory.register("lilyonthevalley.com", () => new FictioneerParser());
 parserFactory.register("razentl.com", () => new FictioneerParser());
 //these still exist
+parserFactory.register("cherrymist.cafe", () => new FictioneerParser());
 parserFactory.register("emberlib731.xyz", () => new FictioneerParser());
-parserFactory.register("lilyonthevalley.com", () => new FictioneerParser());
+parserFactory.register("flyonthewalls.blog", () => new FictioneerParser());
 parserFactory.register("novelib.com", () => new FictioneerParser());
 parserFactory.register("smeraldogarden.com", () => new FictioneerParser());
 parserFactory.register("springofromance.com", () => new FictioneerParser());
@@ -79,7 +81,11 @@ class FictioneerParser extends Parser {
 
     // story description
     extractDescription(dom) {
-        return dom.querySelector(".story__summary").textContent.trim();
+        let summary = dom.querySelector(".story__summary");
+        if (summary === null) return "";
+        summary = summary.cloneNode(true);
+        util.removeElements(summary.querySelectorAll(".related-stories-block, .code-block, .jp-relatedposts"));
+        return summary.textContent.trim();
     }
 
     findChapterTitle(dom) {
@@ -105,6 +111,21 @@ class FictioneerParser extends Parser {
         return pos !== -1 ? url.substring(0, pos) : url;
     }
 
+    preprocessRawDom(chapterDom) {
+        let antiScrape = chapterDom.querySelector(".tiv-anti-scrape")?.parentNode;
+        if (!antiScrape) return;
+
+        let payloadEl = antiScrape.querySelector("script");
+        if (!payloadEl) return;
+
+        let data = JSON.parse(payloadEl.textContent || payloadEl.innerText || "{}");
+        antiScrape.replaceChildren();
+        let cryptNode = chapterDom.createElement("p");
+        cryptNode.className = "encryptedPayload";
+        cryptNode.textContent = data.data;
+        antiScrape.appendChild(cryptNode);
+    }
+
     customRawDomToContentStep(chapter, content) {
         content.querySelectorAll("*").forEach(element => {
             if (element.tagName === "P") {
@@ -124,7 +145,11 @@ class FictioneerParser extends Parser {
     }
 
     getInformationEpubItemChildNodes(dom) {
-        return [...dom.querySelectorAll(".story__header, .story__summary")];
+        return [...dom.querySelectorAll(".story__header, .story__summary")].map(node => {
+            const clone = node.cloneNode(true);
+            util.removeElements(clone.querySelectorAll(".related-stories-block, .code-block"));
+            return clone;
+        });
     }
 
     extractSubject(dom) {

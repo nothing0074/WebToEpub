@@ -8,8 +8,28 @@ class YedugeParser extends Parser {
     }
 
     async getChapterUrls(dom) {
-        let menu = dom.querySelector(".chapter-list");
-        return util.hyperlinksToChapterList(menu);
+        let menu = [...dom.querySelectorAll(".chapter-list a")];
+
+        return menu.map(YedugeParser.linkToChapter);
+    }
+
+    static linkToChapter(link) {
+        let title = link.textContent.trim();
+
+        let isIncludeable = !title.endsWith("VIP");
+
+        if (title.endsWith("VIP")) {
+            title = title.slice(0, -3).trim();
+        }
+        else if (title.endsWith("免费")) {
+            title = title.slice(0, -2).trim();
+        }
+
+        return {
+            sourceUrl: link.href, 
+            title: title, 
+            isIncludeable: isIncludeable
+        };
     }
 
     findContent(dom) {
@@ -40,6 +60,12 @@ class YedugeParser extends Parser {
     extractAuthor(dom) {
         let authorLabel = dom.querySelector(".info > p:nth-child(2)");
         return authorLabel?.textContent.replace("作者：", "").trim() ?? super.extractAuthor(dom);
+    }
+
+    extractSubject(dom) {
+        let genres = [...dom.querySelectorAll(".info > p:nth-child(4) a")];
+        let tags = [...dom.querySelectorAll(".info > p:nth-child(5) a")];
+        return [...genres, ...tags].map(e => e.textContent).join(", ");
     }
 
     extractDescription(dom) {

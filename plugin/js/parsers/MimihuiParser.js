@@ -12,25 +12,38 @@ class MimihuiParser extends Parser {
 
         let tocPage = (await HttpClient.wrapFetch(tocUrl)).responseXML;
 
-        let menu = tocPage.querySelector(".chapter-list");
+        let menu = [...tocPage.querySelectorAll(".chapter-list a")];
 
-        return util.hyperlinksToChapterList(menu);
+        return menu.map(MimihuiParser.linkToChapter);
+    }
 
-        /* 
-        Will need to handle VIP chapters and clean chapter titles. (Remove 免费 and VIP from the end of it. Only ToC is affected by this.)
+    static linkToChapter(link) {
+        let title = link.textContent.trim();
 
-        We can still get a sneakpeek of the content of VIP chapters even when locked, ~10 lines, so I didn't make them automatically non-includeable. 
-        With them being visible clearly in the ToC with a 'VIP' at the end, if user want to remove them. 
-        */
+        let isIncludeable = !title.endsWith("VIP");
+
+        if (title.endsWith("VIP")) {
+            title = title.slice(0, -3).trim();
+        }
+        else if (title.endsWith("免费")) {
+            title = title.slice(0, -2).trim();
+        }
+
+        return {
+            sourceUrl: link.href, 
+            title: title, 
+            isIncludeable: isIncludeable
+        };
+    }
+
+    extractSubject(dom) {
+        let genres = [...dom.querySelectorAll(".info > dl:nth-child(4) > dd a")];
+        let tags = [...dom.querySelectorAll(".info > dl:nth-child(5) > dd a")]; 
+        return [...genres, ...tags].map(e => e.textContent).join(", ");
     }
 
     findContent(dom) {
         return dom.querySelector(".content");
-    }
-
-    removeUnwantedElementsFromContentElement(element) {
-        util.removeChildElementsMatchingSelector(element, "lock");
-        super.removeUnwantedElementsFromContentElement(element);
     }
 
     findChapterTitle(dom) {
@@ -50,12 +63,12 @@ class MimihuiParser extends Parser {
     }
 
     extractAuthor(dom) {
-        let authorLabel = dom.querySelector(".info > dl:nth-child(2) > dd:nth-child(2)");
+        let authorLabel = dom.querySelector(".info > dl:nth-child(2) > dd");
         return authorLabel?.textContent ?? super.extractAuthor(dom);
     }
 
     extractDescription(dom) {
-        return dom.querySelector(".desc").textContent.trim();
+        return dom.querySelector(".desc > p").textContent.trim();
     }
 
     getInformationEpubItemChildNodes(dom) {
